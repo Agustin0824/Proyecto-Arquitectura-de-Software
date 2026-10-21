@@ -1,10 +1,26 @@
 package mx.edu.uacm.is.slt.as.sip.aplicacion.puertos;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.Optional;
 import mx.edu.uacm.is.slt.as.sip.dominio.Cliente;
 
 /**
- * Acceso al almacenamiento local de clientes.
+ * Define las operaciones de almacenamiento local de clientes.
  */
-public interface ClienteRepositorio extends JpaRepository<Cliente, String> {
+public interface ClienteRepositorio {
+
+    /**
+     * Busca un cliente por su identificador.
+     *
+     * @param curp identificador del cliente
+     * @return cliente encontrado o resultado vacio
+     */
+    Optional<Cliente> findById(String curp);
+
+    /**
+     * Guarda el estado de un cliente.
+     *
+     * @param cliente cliente que se guardara
+     * @return cliente guardado
+     */
+    Cliente save(Cliente cliente);
 }
