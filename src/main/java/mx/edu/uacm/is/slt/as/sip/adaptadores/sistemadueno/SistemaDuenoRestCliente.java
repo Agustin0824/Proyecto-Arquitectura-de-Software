@@ -19,8 +19,8 @@ import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosPoliza;
 import mx.edu.uacm.is.slt.as.sip.aplicacion.puertos.SistemaDueno;
 import mx.edu.uacm.is.slt.as.sip.dominio.Poliza;
 import mx.edu.uacm.is.slt.as.sip.dominio.SistemaDuenoNoDisponibleException;
-import mx.edu.uacm.is.slt.as.sip.infraestructura.rest.PolizaRespuesta;
 import mx.edu.uacm.is.slt.as.sip.infraestructura.rest.ClienteRespuesta;
+import mx.edu.uacm.is.slt.as.sip.infraestructura.rest.PolizaRespuesta;
 
 /**
  * Realiza consultas REST al Sistema Dueno.
