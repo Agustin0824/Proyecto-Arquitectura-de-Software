@@ -75,6 +75,20 @@ public class ManejadorErrores {
                 excepcion.getMessage());
     }
 
+
+     /**
+     * Informa que la operacion esta pendiente de implementacion.
+     *
+     * @param excepcion operacion no implementada
+     * @return respuesta HTTP 501
+     */
+    @ExceptionHandler(UnsupportedOperationException.class)
+    public ResponseEntity<Error> operacionNoImplementada(
+            UnsupportedOperationException excepcion) {
+        return responder(HttpStatus.NOT_IMPLEMENTED, "NO-IMPLEMENTADO",
+                excepcion.getMessage());
+    }
+
     private static ResponseEntity<Error> responder(HttpStatus estado,
             String codigo, String mensaje) {
         return ResponseEntity.status(estado).body(new Error(codigo, mensaje));

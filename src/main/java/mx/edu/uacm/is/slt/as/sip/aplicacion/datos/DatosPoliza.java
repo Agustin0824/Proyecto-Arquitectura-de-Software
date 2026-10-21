@@ -1,4 +1,4 @@
-package mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.datos;
+package mx.edu.uacm.is.slt.as.sip.aplicacion.datos;
 
 import java.math.BigDecimal;
 

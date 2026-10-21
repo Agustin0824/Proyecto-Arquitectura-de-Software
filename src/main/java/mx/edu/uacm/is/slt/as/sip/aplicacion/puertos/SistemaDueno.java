@@ -1,11 +1,11 @@
-package mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.puertos;
+package mx.edu.uacm.is.slt.as.sip.aplicacion.puertos;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.datos.DatosBeneficiario;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.datos.DatosCliente;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.datos.DatosPoliza;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosBeneficiario;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosCliente;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosPoliza;
 
 /**
  * Puerto hacia el Sistema Dueno. Todo fallo de comunicacion se informa con
@@ -88,17 +88,23 @@ public interface SistemaDueno {
     void eliminarPoliza(String clave);
 
     /**
-     * Lista los beneficiarios de una poliza.
-     *
-     * @param clavePoliza clave de la poliza
-     * @return beneficiarios registrados
-     */
-    List<DatosBeneficiario> listarBeneficiarios(String clavePoliza);
-
-    /**
      * Registra un beneficiario.
      *
      * @param beneficiario datos del beneficiario
      */
     void registrarBeneficiario(DatosBeneficiario beneficiario);
+
+        /**
+     * Consulta un beneficiario mediante sus datos de identificacion.
+     *
+     * @param clavePoliza identificador de la poliza
+     * @param fechaNacimiento fecha de nacimiento
+     * @param nombres nombres del beneficiario
+     * @param primerApellido primer apellido
+     * @param segundoApellido segundo apellido, opcional
+     * @return beneficiario encontrado o resultado vacio
+     */
+    Optional<DatosBeneficiario> consultarBeneficiario(
+            String clavePoliza, LocalDate fechaNacimiento,
+            String nombres, String primerApellido, String segundoApellido);
 }
