@@ -1,18 +1,18 @@
-package mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.servicios;
+package mx.edu.uacm.is.slt.as.sip.aplicacion.servicios;
 
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.datos.DatosPoliza;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.puertos.BeneficiarioRepositorio;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.puertos.PolizaRepositorio;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.puertos.SistemaDueno;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.Cliente;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.Poliza;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.RecursoNoEncontradoException;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.ReglaNegocioException;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosPoliza;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.puertos.BeneficiarioRepositorio;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.puertos.PolizaRepositorio;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.puertos.SistemaDueno;
+import mx.edu.uacm.is.slt.as.sip.dominio.Cliente;
+import mx.edu.uacm.is.slt.as.sip.dominio.Poliza;
+import mx.edu.uacm.is.slt.as.sip.dominio.RecursoNoEncontradoException;
+import mx.edu.uacm.is.slt.as.sip.dominio.ReglaNegocioException;
 
 /**
  * Casos de uso: alta, consulta, modificacion y baja de polizas.

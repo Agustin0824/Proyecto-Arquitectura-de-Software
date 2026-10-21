@@ -1,14 +1,14 @@
-package mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.servicios;
+package mx.edu.uacm.is.slt.as.sip.aplicacion.servicios;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.datos.DatosCliente;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.puertos.ClienteRepositorio;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.puertos.SistemaDueno;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.Cliente;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.ClienteNoRegistradoException;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.ReglaNegocioException;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosCliente;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.puertos.ClienteRepositorio;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.puertos.SistemaDueno;
+import mx.edu.uacm.is.slt.as.sip.dominio.Cliente;
+import mx.edu.uacm.is.slt.as.sip.dominio.ClienteNoRegistradoException;
+import mx.edu.uacm.is.slt.as.sip.dominio.ReglaNegocioException;
 
 /**
  * Casos de uso: alta, modificacion y consulta de clientes.

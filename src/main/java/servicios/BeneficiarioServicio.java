@@ -1,4 +1,4 @@
-package mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.servicios;
+package mx.edu.uacm.is.slt.as.sip.aplicacion.servicios;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -6,13 +6,13 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.datos.DatosBeneficiario;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.puertos.BeneficiarioRepositorio;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.aplicacion.puertos.SistemaDueno;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.Beneficiario;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.Poliza;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.RecursoNoEncontradoException;
-import mx.edu.uacm.is.slt.as.IDSISTEMA.dominio.ReglaNegocioException;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosBeneficiario;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.puertos.BeneficiarioRepositorio;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.puertos.SistemaDueno;
+import mx.edu.uacm.is.slt.as.sip.dominio.Beneficiario;
+import mx.edu.uacm.is.slt.as.sip.dominio.Poliza;
+import mx.edu.uacm.is.slt.as.sip.dominio.RecursoNoEncontradoException;
+import mx.edu.uacm.is.slt.as.sip.dominio.ReglaNegocioException;
 
 /**
  * Casos de uso: alta y consulta de beneficiarios de una poliza.
