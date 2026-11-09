@@ -4,6 +4,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosPoliza;
 import mx.edu.uacm.is.slt.as.sip.aplicacion.puertos.SistemaDueno;
+import mx.edu.uacm.is.slt.as.sip.dominio.ClienteNoRegistradoException;
+import mx.edu.uacm.is.slt.as.sip.dominio.Poliza;
 import mx.edu.uacm.is.slt.as.sip.dominio.RecursoNoEncontradoException;
 import mx.edu.uacm.is.slt.as.sip.dominio.ReglaNegocioException;
 import mx.edu.uacm.is.slt.as.sip.dominio.TipoPoliza;
@@ -86,36 +88,145 @@ public class PolizaServicio {
     }
 
     /**
-     * Representa el alta pendiente de implementacion.
+     * Valida y registra una poliza en el Sistema Dueno.
      *
      * @param datos datos de la poliza
-     * @return poliza cuando se implemente la operacion
+     * @return datos confirmados mediante consulta remota
      */
     public DatosPoliza registrar(DatosPoliza datos) {
-        throw new UnsupportedOperationException(
-                "El alta de polizas aun no esta implementada.");
+        DatosPoliza solicitud = validarDatosPoliza(datos);
+
+        var cliente = sistemaDueno.consultarCliente(solicitud.curpCliente())
+                .orElseThrow(() -> new ClienteNoRegistradoException(
+                        solicitud.curpCliente()));
+
+        if (!solicitud.curpCliente().equals(cliente.curp())) {
+            throw new ReglaNegocioException(
+                    "La CURP recibida no coincide con el cliente solicitado.");
+        }
+
+        if (sistemaDueno.consultarPoliza(solicitud.clave()).isPresent()) {
+            throw new ReglaNegocioException(
+                    "Ya existe una poliza con la clave proporcionada.");
+        }
+
+        sistemaDueno.registrarPoliza(solicitud);
+
+        DatosPoliza registrada = consultar(solicitud.clave());
+
+        boolean coincide = solicitud.tipo().equals(registrada.tipo())
+                && registrada.montoAsegurado() != null
+                && solicitud.montoAsegurado()
+                        .compareTo(registrada.montoAsegurado()) == 0
+                && solicitud.descripcion().equals(registrada.descripcion())
+                && solicitud.curpCliente().equals(registrada.curpCliente());
+
+        if (!coincide) {
+            throw new ReglaNegocioException(
+                    "No se pudo confirmar que la poliza coincida con el alta."
+                            + " Consulta su estado antes de repetir la solicitud.");
+        }
+
+        return registrada;
     }
 
     /**
-     * Representa la modificacion pendiente de implementacion.
+     * Modifica una poliza y comprueba el resultado remoto.
      *
      * @param clave identificador de la poliza
      * @param datos datos nuevos
-     * @return poliza cuando se implemente la operacion
+     * @return poliza confirmada mediante consulta remota
      */
     public DatosPoliza modificar(String clave, DatosPoliza datos) {
-        throw new UnsupportedOperationException(
-                "La modificacion de polizas aun no esta implementada.");
+        if (clave == null || clave.isBlank()) {
+            throw new ReglaNegocioException(
+                    "Ingresa la clave de la poliza.");
+        }
+
+        DatosPoliza solicitud = validarDatosPoliza(datos);
+        String identificador = clave.strip();
+
+        if (!identificador.equals(solicitud.clave())) {
+            throw new ReglaNegocioException(
+                    "La clave de la poliza no puede modificarse.");
+        }
+
+        consultar(identificador);
+
+        var cliente = sistemaDueno.consultarCliente(solicitud.curpCliente())
+                .orElseThrow(() -> new ClienteNoRegistradoException(
+                        solicitud.curpCliente()));
+
+        if (!solicitud.curpCliente().equals(cliente.curp())) {
+            throw new ReglaNegocioException(
+                    "La CURP recibida no coincide con el cliente solicitado.");
+        }
+
+        sistemaDueno.modificarPoliza(solicitud);
+
+        DatosPoliza modificada = consultar(identificador);
+
+        boolean coincide = solicitud.tipo().equals(modificada.tipo())
+                && modificada.montoAsegurado() != null
+                && solicitud.montoAsegurado()
+                        .compareTo(modificada.montoAsegurado()) == 0
+                && solicitud.descripcion().equals(modificada.descripcion())
+                && solicitud.curpCliente().equals(modificada.curpCliente());
+
+        if (!coincide) {
+            throw new ReglaNegocioException(
+                    "No se pudo confirmar la modificacion de la poliza."
+                            + " Consulta su estado antes de repetir la solicitud.");
+        }
+
+        return modificada;
     }
 
     /**
-     * Representa la baja pendiente de implementacion.
+     * Elimina una poliza y comprueba su ausencia en el Sistema Dueno.
      *
      * @param clave identificador de la poliza
      */
     public void eliminar(String clave) {
-        throw new UnsupportedOperationException(
-                "La baja de polizas aun no esta implementada.");
+        DatosPoliza existente = consultar(clave);
+        String identificador = existente.clave();
+
+        sistemaDueno.eliminarPoliza(identificador);
+
+        if (sistemaDueno.consultarPoliza(identificador).isPresent()) {
+            throw new ReglaNegocioException(
+                    "No se pudo confirmar la baja de la poliza."
+                            + " Consulta su estado antes de repetir la solicitud.");
+        }
+    }
+
+    /**
+     * Valida los datos reutilizando las reglas del modelo de dominio.
+     *
+     * @param datos datos recibidos
+     * @return datos validados y normalizados
+     */
+    private static DatosPoliza validarDatosPoliza(DatosPoliza datos) {
+        if (datos == null) {
+            throw new ReglaNegocioException(
+                    "Los datos de la poliza son obligatorios.");
+        }
+
+        if (datos.tipo() == null || datos.tipo().isBlank()) {
+            throw new ReglaNegocioException(
+                    "El tipo de poliza es obligatorio.");
+        }
+
+        String codigo = normalizarTipo(datos.tipo().strip());
+        TipoPoliza tipo = TipoPoliza.desdeCodigo(Integer.parseInt(codigo));
+
+        Poliza poliza = new Poliza(
+                datos.clave(), tipo, datos.montoAsegurado(),
+                datos.descripcion(), datos.curpCliente());
+
+        return new DatosPoliza(
+                poliza.getClave(), codigo, poliza.getMontoAsegurado(),
+                poliza.getDescripcion(), poliza.getCurpCliente());
     }
 
     /**
