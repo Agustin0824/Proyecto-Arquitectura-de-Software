@@ -88,6 +88,47 @@ public class PolizaServicio {
     }
 
     /**
+     * Consulta polizas con paginacion opcional.
+     *
+     * @param curp CURP del cliente, opcional
+     * @param tipo tipo de poliza, opcional
+     * @param pagina numero de pagina desde cero, opcional
+     * @param tamano cantidad de registros por pagina, opcional
+     * @return registros de la pagina solicitada
+     */
+    public List<DatosPoliza> listar(String curp, String tipo,
+            Integer pagina, Integer tamano) {
+        if (pagina == null && tamano == null) {
+            return listar(curp, tipo);
+        }
+
+        int numeroPagina = pagina == null ? 0 : pagina;
+        int cantidad = tamano == null ? 20 : tamano;
+
+        if (numeroPagina < 0) {
+            throw new ReglaNegocioException(
+                    "La pagina debe ser mayor o igual que cero.");
+        }
+
+        if (cantidad < 1 || cantidad > 100) {
+            throw new ReglaNegocioException(
+                    "El tamano de pagina debe estar entre 1 y 100.");
+        }
+
+        List<DatosPoliza> resultados = listar(curp, tipo);
+        long inicio = (long) numeroPagina * cantidad;
+
+        if (inicio >= resultados.size()) {
+            return List.of();
+        }
+
+        int desde = (int) inicio;
+        int hasta = (int) Math.min(inicio + cantidad, resultados.size());
+
+        return List.copyOf(resultados.subList(desde, hasta));
+    }
+
+    /**
      * Valida y registra una poliza en el Sistema Dueno.
      *
      * @param datos datos de la poliza

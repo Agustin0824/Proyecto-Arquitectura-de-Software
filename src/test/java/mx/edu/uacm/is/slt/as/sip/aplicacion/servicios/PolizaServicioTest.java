@@ -2,6 +2,7 @@ package mx.edu.uacm.is.slt.as.sip.aplicacion.servicios;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -246,6 +247,200 @@ class PolizaServicioTest {
 
         Mockito.verify(remoto, Mockito.times(1))
                 .eliminarPoliza(existente.clave());
+    }
+
+    /**
+     * Impide registrar una clave que ya existe.
+     */
+    @Test
+    void registrarRechazaClaveExistente() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+        DatosPoliza solicitud = datosValidos();
+
+        DatosCliente cliente = new DatosCliente(
+                CURP, "Cliente", "Prueba", null,
+                "Direccion de prueba", LocalDate.of(1990, 1, 1));
+
+        Mockito.when(remoto.consultarCliente(CURP))
+                .thenReturn(Optional.of(cliente));
+        Mockito.when(remoto.consultarPoliza(solicitud.clave()))
+                .thenReturn(Optional.of(solicitud));
+
+        Assertions.assertThrows(ReglaNegocioException.class,
+                () -> servicio.registrar(solicitud));
+
+        Mockito.verify(remoto, Mockito.never())
+                .registrarPoliza(Mockito.any(DatosPoliza.class));
+    }
+
+    /**
+     * Impide modificar una poliza inexistente.
+     */
+    @Test
+    void modificarRechazaPolizaInexistente() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+        DatosPoliza solicitud = datosValidos();
+
+        Mockito.when(remoto.consultarPoliza(solicitud.clave()))
+                .thenReturn(Optional.empty());
+
+        Assertions.assertThrows(RecursoNoEncontradoException.class,
+                () -> servicio.modificar(solicitud.clave(), solicitud));
+
+        Mockito.verify(remoto, Mockito.never())
+                .modificarPoliza(Mockito.any(DatosPoliza.class));
+        Mockito.verify(remoto, Mockito.never())
+                .consultarCliente(Mockito.anyString());
+    }
+
+    /**
+     * Impide modificar una poliza con un cliente inexistente.
+     */
+    @Test
+    void modificarRechazaClienteInexistente() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+        DatosPoliza solicitud = datosValidos();
+
+        Mockito.when(remoto.consultarPoliza(solicitud.clave()))
+                .thenReturn(Optional.of(solicitud));
+        Mockito.when(remoto.consultarCliente(CURP))
+                .thenReturn(Optional.empty());
+
+        Assertions.assertThrows(ClienteNoRegistradoException.class,
+                () -> servicio.modificar(solicitud.clave(), solicitud));
+
+        Mockito.verify(remoto, Mockito.never())
+                .modificarPoliza(Mockito.any(DatosPoliza.class));
+    }
+
+    /**
+     * Rechaza una baja sin clave antes de acceder al Sistema Dueno.
+     */
+    @Test
+    void eliminarRechazaClaveVacia() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+
+        Assertions.assertThrows(ReglaNegocioException.class,
+                () -> servicio.eliminar("   "));
+
+        Mockito.verifyNoInteractions(remoto);
+    }
+
+    /**
+     * Devuelve los registros de la pagina solicitada.
+     */
+    @Test
+    void listarDevuelveSegundaPagina() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+        DatosPoliza primera = datosValidos();
+
+        DatosPoliza segunda = new DatosPoliza(
+                "SIP-PRUEBA-002", "1", new BigDecimal("2000.00"),
+                "Segunda poliza", CURP);
+
+        DatosPoliza tercera = new DatosPoliza(
+                "SIP-PRUEBA-003", "2", new BigDecimal("3000.00"),
+                "Tercera poliza", CURP);
+
+        Mockito.when(remoto.listarPolizas())
+                .thenReturn(List.of(primera, segunda, tercera));
+
+        List<DatosPoliza> resultado = servicio.listar(null, null, 1, 2);
+
+        Assertions.assertEquals(List.of(tercera), resultado);
+        Mockito.verify(remoto).listarPolizas();
+    }
+
+    /**
+     * Mantiene el listado completo cuando no se solicita paginacion.
+     */
+    @Test
+    void listarConservaConsultaSinPaginacion() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+        List<DatosPoliza> existentes = List.of(datosValidos());
+
+        Mockito.when(remoto.listarPolizas()).thenReturn(existentes);
+
+        List<DatosPoliza> resultado = servicio.listar(
+                null, null, null, null);
+
+        Assertions.assertEquals(existentes, resultado);
+    }
+
+    /**
+     * Aplica el filtro antes de seleccionar la pagina.
+     */
+    @Test
+    void listarFiltraAntesDePaginar() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+        DatosPoliza auto = datosValidos();
+
+        DatosPoliza vida = new DatosPoliza(
+                "SIP-PRUEBA-002", "1", new BigDecimal("2000.00"),
+                "Seguro de vida", CURP);
+
+        Mockito.when(remoto.listarPolizasPorCurp(CURP))
+                .thenReturn(List.of(auto, vida));
+
+        List<DatosPoliza> resultado = servicio.listar(CURP, "1", 0, 1);
+
+        Assertions.assertEquals(List.of(vida), resultado);
+        Mockito.verify(remoto).listarPolizasPorCurp(CURP);
+    }
+
+    /**
+     * Devuelve una lista vacia cuando la pagina supera el resultado.
+     */
+    @Test
+    void listarDevuelveVacioFueraDeRango() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+
+        Mockito.when(remoto.listarPolizas())
+                .thenReturn(List.of(datosValidos()));
+
+        List<DatosPoliza> resultado = servicio.listar(
+                null, null, Integer.MAX_VALUE, 100);
+
+        Assertions.assertTrue(resultado.isEmpty());
+    }
+
+    /**
+     * Rechaza paginas negativas antes de realizar consultas.
+     */
+    @Test
+    void listarRechazaPaginaNegativa() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+
+        Assertions.assertThrows(ReglaNegocioException.class,
+                () -> servicio.listar(null, null, -1, 10));
+
+        Mockito.verifyNoInteractions(remoto);
+    }
+
+    /**
+     * Rechaza tamanos fuera de los limites permitidos.
+     */
+    @Test
+    void listarRechazaTamanoInvalido() {
+        SistemaDueno remoto = Mockito.mock(SistemaDueno.class);
+        PolizaServicio servicio = new PolizaServicio(remoto);
+
+        Assertions.assertThrows(ReglaNegocioException.class,
+                () -> servicio.listar(null, null, 0, 0));
+
+        Assertions.assertThrows(ReglaNegocioException.class,
+                () -> servicio.listar(null, null, 0, 101));
+
+        Mockito.verifyNoInteractions(remoto);
     }
 
     /**

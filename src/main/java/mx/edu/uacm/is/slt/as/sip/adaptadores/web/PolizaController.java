@@ -34,16 +34,21 @@ public class PolizaController {
     }
 
     /**
-     * Consulta polizas con filtros opcionales.
+     * Consulta polizas con filtros y paginacion opcionales.
      *
      * @param curp CURP del cliente, opcional
      * @param tipo tipo de poliza, opcional
+     * @param pagina numero de pagina desde cero, opcional
+     * @param tamano cantidad de registros por pagina, opcional
      * @return polizas encontradas
      */
     @GetMapping
-    public List<DatosPoliza> listar(@RequestParam(required = false) String curp,
-            @RequestParam(required = false) String tipo) {
-        return servicio.listar(curp, tipo);
+    public List<DatosPoliza> listar(
+            @RequestParam(required = false) String curp,
+            @RequestParam(required = false) String tipo,
+            @RequestParam(required = false) Integer pagina,
+            @RequestParam(required = false) Integer tamano) {
+        return servicio.listar(curp, tipo, pagina, tamano);
     }
 
     /**
