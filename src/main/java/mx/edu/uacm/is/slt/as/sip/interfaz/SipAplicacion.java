@@ -14,6 +14,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosPoliza;
 
 /**
  * Muestra ejecutable de la propuesta de interfaz del SIP.
@@ -22,6 +23,9 @@ public class SipAplicacion extends Application {
 
     private final Label estado = new Label(
             "Prototipo de practica 2. Selecciona una operacion.");
+    private final ClienteSipApi api = new ClienteSipApi();
+    private final EjecutorAsincrono ejecutor = new EjecutorAsincrono(estado);
+    private final TextField campoUrlApi = new TextField(api.getUrlBase());
 
     /**
      * Inicia la muestra de interfaz.
@@ -41,9 +45,12 @@ public class SipAplicacion extends Application {
         subtitulo.setStyle("-fx-font-size: 16px;");
 
         Label aviso = new Label(
-                "Muestra de interfaz: las operaciones no estan conectadas en esta ventana.");
+                "Muestra de interfaz: solo la consulta de poliza por clave esta conectada.");
 
-        VBox encabezado = new VBox(6, titulo, subtitulo, aviso);
+        campoUrlApi.setPrefWidth(320);
+        HBox direccionApi = new HBox(10, new Label("API SIP:"), campoUrlApi);
+
+        VBox encabezado = new VBox(6, titulo, subtitulo, aviso, direccionApi);
         encabezado.setPadding(new Insets(20));
         encabezado.setStyle("-fx-background-color: #e8eef7;");
 
@@ -96,14 +103,20 @@ public class SipAplicacion extends Application {
      */
     private Tab crearPolizas() {
         GridPane formulario = crearFormulario();
-        agregarCampo(formulario, 0, "Clave de poliza");
-        agregarCampo(formulario, 1, "CURP del titular");
-        agregarCampo(formulario, 2, "Tipo (0: auto, 1: vida, 2: medico)");
-        agregarCampo(formulario, 3, "Monto asegurado");
-        agregarCampo(formulario, 4, "Descripcion");
+        TextField campoClave = agregarCampo(formulario, 0, "Clave de poliza");
+        TextField campoCurp = agregarCampo(formulario, 1, "CURP del titular");
+        TextField campoTipo = agregarCampo(formulario, 2,
+                "Tipo (0: auto, 1: vida, 2: medico)");
+        TextField campoMonto = agregarCampo(formulario, 3, "Monto asegurado");
+        TextField campoDescripcion = agregarCampo(formulario, 4, "Descripcion");
+
+        Button consultarClave = new Button("Consultar por clave");
+        consultarClave.setOnAction(evento -> consultarPolizaPorClave(
+                campoClave, campoCurp, campoTipo, campoMonto, campoDescripcion,
+                consultarClave));
 
         HBox consultas = new HBox(10,
-                crearBoton("Consultar por clave"),
+                consultarClave,
                 crearBoton("Consultar listado y filtros"));
 
         HBox escrituras = new HBox(10,
@@ -116,6 +129,42 @@ public class SipAplicacion extends Application {
         contenido.getChildren().add(escrituras);
 
         return new Tab("Polizas", contenido);
+    }
+
+    /**
+     * Consulta una poliza por clave en la API SIP y muestra el resultado.
+     * Es el ejemplo del mecanismo comun: cada modulo conecta sus controles
+     * igual, con ClienteSipApi y EjecutorAsincrono.
+     *
+     * @param campoClave campo con la clave a consultar
+     * @param campoCurp campo donde se muestra la CURP
+     * @param campoTipo campo donde se muestra el tipo
+     * @param campoMonto campo donde se muestra el monto
+     * @param campoDescripcion campo donde se muestra la descripcion
+     * @param boton boton de la operacion, desactivado mientras dura
+     */
+    private void consultarPolizaPorClave(TextField campoClave,
+            TextField campoCurp, TextField campoTipo, TextField campoMonto,
+            TextField campoDescripcion, Button boton) {
+        try {
+            api.configurarUrl(campoUrlApi.getText());
+        } catch (IllegalArgumentException excepcion) {
+            estado.setText(excepcion.getMessage());
+            return;
+        }
+
+        String clave = campoClave.getText();
+        ejecutor.<DatosPoliza>ejecutar("Consultar poliza",
+                () -> api.consultarPoliza(clave),
+                poliza -> {
+                    campoCurp.setText(poliza.curpCliente());
+                    campoTipo.setText(poliza.tipo());
+                    campoMonto.setText(poliza.montoAsegurado() == null
+                            ? "" : poliza.montoAsegurado().toPlainString());
+                    campoDescripcion.setText(poliza.descripcion());
+                },
+                error -> { },
+                boton, campoClave);
     }
 
     /**
@@ -158,13 +207,15 @@ public class SipAplicacion extends Application {
      * @param formulario formulario de destino
      * @param fila posicion del campo
      * @param texto etiqueta del campo
+     * @return campo creado
      */
-    private void agregarCampo(GridPane formulario, int fila, String texto) {
+    private TextField agregarCampo(GridPane formulario, int fila, String texto) {
         TextField campo = new TextField();
         campo.setPromptText(texto);
         campo.setPrefWidth(420);
         formulario.add(new Label(texto), 0, fila);
         formulario.add(campo, 1, fila);
+        return campo;
     }
 
     /**
