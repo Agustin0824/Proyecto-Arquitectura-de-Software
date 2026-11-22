@@ -1,9 +1,10 @@
-
 package mx.edu.uacm.is.slt.as.sip.adaptadores.sistemadueno;
 
+import java.math.BigDecimal;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -208,12 +209,15 @@ public class SistemaDuenoRestCliente implements SistemaDueno {
             String clavePoliza, LocalDate fechaNacimiento,
             String nombres, String primerApellido, String segundoApellido) {
 
-        return obtener(cliente -> cliente.get()
-                .uri("/beneficiario/{fecha}/{clave}/{nombres}/{primer}/{segundo}",
-                        fechaNacimiento.toString(), clavePoliza, nombres,
-                        primerApellido, apellidoOpcional(segundoApellido))
-                .retrieve()
-                .body(DatosBeneficiario.class));
+        return obtener(cliente -> {
+            BeneficiarioRespuesta respuesta = cliente.get()
+                    .uri("/beneficiario/{fecha}/{clave}/{nombres}/{primer}/{segundo}",
+                            fechaNacimiento.toString(), clavePoliza, nombres,
+                            primerApellido, apellidoOpcional(segundoApellido))
+                    .retrieve()
+                    .body(BeneficiarioRespuesta.class);
+            return convertirBeneficiario(respuesta);
+        });
     }
 
     @Override
@@ -458,6 +462,76 @@ public class SistemaDuenoRestCliente implements SistemaDueno {
                     "El primer apellido del beneficiario"),
             apellidoOpcional(beneficiario.segundoApellido())
         };
+    }
+
+    /**
+     * Convierte la respuesta anidada del Sistema Dueno a datos de aplicacion.
+     *
+     * @param respuesta beneficiario recibido del servicio remoto
+     * @return datos del beneficiario o nulo si la respuesta no tiene cuerpo
+     */
+    private static DatosBeneficiario convertirBeneficiario(
+            BeneficiarioRespuesta respuesta) {
+
+        if (respuesta == null) {
+            return null;
+        }
+        if (respuesta.id() == null || respuesta.id().fechaNacimiento() == null
+                || respuesta.porcentaje() == null) {
+            throw new RestClientException(
+                    "El Sistema Dueno devolvio un beneficiario incompleto.");
+        }
+
+        IdentificadorBeneficiario identificador = respuesta.id();
+        return new DatosBeneficiario(
+                null,
+                identificador.nombres(),
+                identificador.primerApellido(),
+                normalizarApellidoRemoto(identificador.segundoApellido()),
+                identificador.fechaNacimiento().toLocalDate(),
+                respuesta.porcentaje(),
+                identificador.clavePoliza());
+    }
+
+    /**
+     * Convierte el segundo apellido remoto "null" al valor nulo de Java.
+     *
+     * @param segundoApellido segundo apellido recibido
+     * @return apellido normalizado o nulo
+     */
+    private static String normalizarApellidoRemoto(String segundoApellido) {
+        if (segundoApellido == null || segundoApellido.isBlank()
+                || APELLIDO_AUSENTE.equalsIgnoreCase(segundoApellido.strip())) {
+            return null;
+        }
+        return segundoApellido.strip();
+    }
+
+    /**
+     * Estructura JSON del beneficiario devuelta por el Sistema Dueno.
+     *
+     * @param id identificador compuesto del beneficiario
+     * @param porcentaje porcentaje de beneficio
+     */
+    private record BeneficiarioRespuesta(
+            IdentificadorBeneficiario id, BigDecimal porcentaje) {
+    }
+
+    /**
+     * Identificador compuesto incluido dentro de la respuesta remota.
+     *
+     * @param nombres nombres del beneficiario
+     * @param primerApellido primer apellido
+     * @param segundoApellido segundo apellido
+     * @param fechaNacimiento fecha de nacimiento con zona horaria
+     * @param clavePoliza clave de la poliza asociada
+     */
+    private record IdentificadorBeneficiario(
+            String nombres,
+            String primerApellido,
+            String segundoApellido,
+            OffsetDateTime fechaNacimiento,
+            String clavePoliza) {
     }
 
     /**
