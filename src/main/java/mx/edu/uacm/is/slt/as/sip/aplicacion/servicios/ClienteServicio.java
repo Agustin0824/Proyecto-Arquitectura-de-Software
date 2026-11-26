@@ -1,5 +1,6 @@
 package mx.edu.uacm.is.slt.as.sip.aplicacion.servicios;
 
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import mx.edu.uacm.is.slt.as.sip.aplicacion.datos.DatosCliente;
@@ -10,7 +11,7 @@ import mx.edu.uacm.is.slt.as.sip.dominio.ClienteNoRegistradoException;
 import mx.edu.uacm.is.slt.as.sip.dominio.ReglaNegocioException;
 
 /**
- * Coordina la consulta y sincronizacion de clientes.
+ * Coordina las operaciones y sincronizacion de clientes.
  */
 @Service
 public class ClienteServicio {
@@ -31,26 +32,74 @@ public class ClienteServicio {
     }
 
     /**
-     * Representa el alta pendiente de implementacion.
+     * Registra un cliente en el Sistema Dueno y confirma el resultado.
      *
      * @param datos datos del cliente
-     * @return cliente registrado cuando se implemente la operacion
+     * @return datos del cliente registrado y confirmado
      */
+    @Transactional
     public DatosCliente registrar(DatosCliente datos) {
-        throw new UnsupportedOperationException(
-                "El alta de clientes aun no esta implementada.");
+        DatosCliente solicitud = validarDatosCliente(datos);
+
+        var existente = sistemaDueno.consultarCliente(solicitud.curp());
+
+        if (existente.isPresent()) {
+            if (!solicitud.curp().equals(existente.get().curp())) {
+                throw new ReglaNegocioException(
+                        "La CURP recibida no coincide con el cliente solicitado.");
+            }
+
+            throw new ReglaNegocioException(
+                    "Ya existe un cliente con la CURP proporcionada.");
+        }
+
+        sistemaDueno.registrarCliente(solicitud);
+
+        DatosCliente registrado = consultar(solicitud.curp());
+
+        if (!coinciden(solicitud, registrado)) {
+            throw new ReglaNegocioException(
+                    "No se pudo confirmar que el cliente coincida con el alta."
+                    + " Consulta su estado antes de repetir la solicitud.");
+        }
+
+        return registrado;
     }
 
     /**
-     * Representa la modificacion pendiente de implementacion.
+     * Modifica un cliente y comprueba el resultado remoto.
      *
      * @param curp identificador del cliente
      * @param datos datos nuevos
-     * @return cliente modificado cuando se implemente la operacion
+     * @return datos del cliente modificado y confirmado
      */
+    @Transactional
     public DatosCliente modificar(String curp, DatosCliente datos) {
-        throw new UnsupportedOperationException(
-                "La modificacion de clientes aun no esta implementada.");
+        if (curp == null || curp.isBlank()) {
+            throw new ReglaNegocioException("Ingresa la CURP del cliente.");
+        }
+
+        String identificador = curp.strip();
+        DatosCliente solicitud = validarDatosCliente(datos);
+
+        if (!identificador.equals(solicitud.curp())) {
+            throw new ReglaNegocioException(
+                    "La CURP del cliente no puede modificarse.");
+        }
+
+        obtenerClienteRemoto(identificador);
+
+        sistemaDueno.modificarCliente(solicitud);
+
+        DatosCliente modificado = consultar(identificador);
+
+        if (!coinciden(solicitud, modificado)) {
+            throw new ReglaNegocioException(
+                    "No se pudo confirmar la modificacion del cliente."
+                    + " Consulta su estado antes de repetir la solicitud.");
+        }
+
+        return modificado;
     }
 
     /**
@@ -76,15 +125,10 @@ public class ClienteServicio {
         }
 
         String identificador = curp.strip();
-        DatosCliente remoto = sistemaDueno.consultarCliente(identificador)
-                .orElseThrow(() -> new ClienteNoRegistradoException(identificador));
-
-        if (!identificador.equals(remoto.curp())) {
-            throw new ReglaNegocioException(
-                    "La CURP recibida no coincide con la solicitada.");
-        }
+        DatosCliente remoto = obtenerClienteRemoto(identificador);
 
         Cliente local = clientes.findById(identificador).orElse(null);
+
         if (local == null) {
             local = new Cliente(remoto.curp(), remoto.nombres(),
                     remoto.primerApellido(), remoto.segundoApellido(),
@@ -98,6 +142,68 @@ public class ClienteServicio {
         return clientes.save(local);
     }
 
+    /**
+     * Recupera un cliente del Sistema Dueno y comprueba su CURP.
+     *
+     * @param curp identificador solicitado
+     * @return datos del cliente remoto
+     */
+    private DatosCliente obtenerClienteRemoto(String curp) {
+        DatosCliente remoto = sistemaDueno.consultarCliente(curp)
+                .orElseThrow(() -> new ClienteNoRegistradoException(curp));
+
+        if (!curp.equals(remoto.curp())) {
+            throw new ReglaNegocioException(
+                    "La CURP recibida no coincide con la solicitada.");
+        }
+
+        return remoto;
+    }
+
+    /**
+     * Valida los datos mediante las reglas de la entidad Cliente.
+     *
+     * @param datos datos recibidos
+     * @return datos validados y normalizados
+     */
+    private static DatosCliente validarDatosCliente(DatosCliente datos) {
+        if (datos == null) {
+            throw new ReglaNegocioException(
+                    "Los datos del cliente son obligatorios.");
+        }
+
+        Cliente cliente = new Cliente(datos.curp(), datos.nombres(),
+                datos.primerApellido(), datos.segundoApellido(),
+                datos.direccion(), datos.fechaNacimiento());
+
+        return convertirADatos(cliente);
+    }
+
+    /**
+     * Comprueba que los datos remotos coincidan con la solicitud.
+     *
+     * @param solicitud datos enviados
+     * @param resultado datos recuperados del servidor
+     * @return verdadero si todos los datos coinciden
+     */
+    private static boolean coinciden(
+            DatosCliente solicitud, DatosCliente resultado) {
+
+        return solicitud.curp().equals(resultado.curp())
+                && solicitud.nombres().equals(resultado.nombres())
+                && solicitud.primerApellido().equals(resultado.primerApellido())
+                && Objects.equals(
+                        solicitud.segundoApellido(), resultado.segundoApellido())
+                && solicitud.direccion().equals(resultado.direccion())
+                && solicitud.fechaNacimiento().equals(resultado.fechaNacimiento());
+    }
+
+    /**
+     * Convierte una entidad Cliente a los datos de aplicacion.
+     *
+     * @param cliente entidad del dominio
+     * @return datos del cliente
+     */
     private static DatosCliente convertirADatos(Cliente cliente) {
         return new DatosCliente(cliente.getCurp(), cliente.getNombres(),
                 cliente.getPrimerApellido(), cliente.getSegundoApellido(),

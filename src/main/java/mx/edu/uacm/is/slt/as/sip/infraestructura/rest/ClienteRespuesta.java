@@ -39,6 +39,21 @@ public record ClienteRespuesta(
         }
 
         return new DatosCliente(curp, nombres, primerApellido,
-                segundoApellido, direccion, fecha);
+                normalizarApellido(segundoApellido), direccion, fecha);
+    }
+
+    /**
+     * Normaliza el segundo apellido opcional recibido del servidor.
+     *
+     * @param apellido segundo apellido recibido
+     * @return apellido normalizado o nulo si esta ausente
+     */
+    private static String normalizarApellido(String apellido) {
+        if (apellido == null || apellido.isBlank()
+                || "null".equalsIgnoreCase(apellido.strip())) {
+            return null;
+        }
+
+        return apellido.strip();
     }
 }
